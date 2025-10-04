@@ -3,7 +3,7 @@
 #include <Arduino.h> 
 #include "esp_heap_caps.h"          // Dùng để kiểm tra PSRAM và RAM
 #include "esp_spi_flash.h"          // Dùng để kiểm tra Flash
-#include "User_Setup_TFT_eSPI.h"    // Dẫn đến file cấu hình bạn vừa tạo
+//#include "User_Setup.h"    // Dẫn đến file cấu hình bạn vừa tạo
 #include <TFT_eSPI.h>  
 // --- HÀM KIỂM TRA VÀ IN TRẠNG THÁI BỘ NHỚ ---
 TFT_eSPI tft = TFT_eSPI(); // Khởi tạo đối tượng TFT
@@ -46,13 +46,13 @@ void setup() {
     tft.init();
     
     // 2. XOAY MÀN HÌNH (1 = ngang, 0 = dọc)
-    tft.setRotation(1); 
+    tft.setRotation(0); 
     
     // 3. ĐỔ MÀU NỀN
-    tft.fillScreen(TFT_WHITE);
+    tft.fillScreen(TFT_BLACK);
 
     // 4. HIỂN THỊ DÒNG CHỮ TEST
-    tft.setTextColor(TFT_YELLOW);    // Chọn màu chữ
+    tft.setTextColor(TFT_WHITE);    // Chọn màu chữ
     tft.setTextSize(2);             // Chọn kích thước chữ
     tft.setCursor(10, 10);          // Đặt vị trí con trỏ (x, y)
     tft.println("TFT Init SUCCESS!");
