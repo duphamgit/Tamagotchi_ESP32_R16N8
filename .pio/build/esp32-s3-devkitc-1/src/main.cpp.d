@@ -271,4 +271,6 @@
  lib/TFT_eSPI/Fonts/Custom/Satisfy_24.h \
  lib/TFT_eSPI/Fonts/Custom/Yellowtail_32.h \
  lib/TFT_eSPI/Extensions/Smooth_font.h lib/TFT_eSPI/Extensions/Button.h \
- lib/TFT_eSPI/Extensions/Sprite.h include/InputManager.h
+ lib/TFT_eSPI/Extensions/Sprite.h include/InputManager.h \
+ include/LEDManager.h \
+ .pio/libdeps/esp32-s3-devkitc-1/Adafruit\ NeoPixel/Adafruit_NeoPixel.h

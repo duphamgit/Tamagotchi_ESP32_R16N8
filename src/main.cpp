@@ -2,6 +2,7 @@
 #include "SystemMonitor.h" // Class quản lý màn hình và trạng thái hệ thống
 #include "InputManager.h"  // Class quản lý đầu vào (nút chạm TP223)
 #include <TFT_eSPI.h> 
+#include "LEDManager.h" 
 
 // --- KHAI BÁO THÔNG SỐ PHẦN CỨNG ---
 const int TOUCH_BUTTON_PIN = 13; // GPIO được kết nối với cảm biến chạm TP223 (Ví dụ)
@@ -12,6 +13,7 @@ TFT_eSPI tft = TFT_eSPI();
 // Khởi tạo các đối tượng quản lý, truyền đối tượng TFT vào SystemMonitor
 SystemMonitor monitor(tft);
 InputManager button(TOUCH_BUTTON_PIN); // Giữ nguyên object để đảm bảo setup() chạy đúng
+LEDManager ledControl;
 
 // --- SETUP ---
 void setup() {
@@ -38,7 +40,8 @@ void setup() {
     tft.println("READY!");
     tft.setTextSize(1);
     tft.setCursor(10, 40);
-    tft.println("Touch GPIO 13 to test.");
+    tft.println("Touch Button to test.");
+    ledControl.begin(); 
 }
 
 // --- LOOP (Người Điều Phối) ---
@@ -71,4 +74,5 @@ void loop() {
     }
 
     delay(10); // Đợi ngắn để cho phép các tác vụ nền khác chạy
+    ledControl.runGreenFade(); // Chạy hiệu ứng LED fade màu xanh lá cây
 }
