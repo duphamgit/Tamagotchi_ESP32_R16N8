@@ -2,12 +2,13 @@
 #include <TFT_eSPI.h> 
 #include "SystemMonitor.h" 
 #include "InputManager.h"  
-#include "ButtonManager.h" 
+#include "ButtonManager.h" // Chứa enum ButtonIndex
 #include "LEDManager.h" 
+#include "MenuManager.h" 
 
 // --- KHAI BÁO CÁC HẰNG SỐ HIỂN THỊ TOÀN CỤC ---
 const int MSG_X = 5;
-const int MSG_Y = 70;
+const int MSG_Y = 165; 
 const int MSG_WIDTH = 230; 
 const int MSG_HEIGHT = 20; 
 
@@ -16,12 +17,11 @@ const int TOUCH_BUTTON_PIN = 13;
 
 // --- KHAI BÁO ENUM CHO TRẠNG THÁI HIỂN THỊ ---
 enum DisplayState {
-    STATE_NONE,       // Không có nút nào được nhấn
-    STATE_UP,
-    STATE_DOWN,
-    STATE_LEFT,
-    STATE_RIGHT,
-    STATE_TOUCH       // Đang giữ nút chạm
+    STATE_MENU,       // Trạng thái hiện tại: Đang ở Menu
+    STATE_FEED,
+    STATE_PLAY,
+    STATE_CLEAN,
+    STATE_STATUS      
 };
 
 // --- KHAI BÁO CÁC ĐỐI TƯỢNG TOÀN CỤC (GLOBAL OBJECTS) ---
@@ -30,11 +30,37 @@ SystemMonitor monitor(tft);
 InputManager touchButton(TOUCH_BUTTON_PIN); 
 ButtonManager physicalButtons;              
 LEDManager ledControl;
+MenuManager menuManager(tft); 
 
 // --- BIẾN TRẠNG THÁI TOÀN CỤC ---
-// Dùng để theo dõi trạng thái hiển thị hiện tại, chỉ cập nhật khi trạng thái thay đổi.
-DisplayState previousState = STATE_NONE; 
+DisplayState previousState = STATE_MENU; 
 
+// TRACKING TRẠNG THÁI CHO ONE-SHOT (Tạm thời)
+// Kích thước mảng phải đủ lớn cho 4 nút (BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT)
+bool physicalButtonLastState[4] = {false, false, false, false};
+
+
+/**
+ * @brief Hàm trợ giúp để mô phỏng checkButton (One-Shot) cho ButtonManager.
+ * @param buttonIndex Index của nút cần kiểm tra (BTN_UP, BTN_DOWN...).
+ * @return true nếu nút VỪA được nhấn (rising edge), false nếu không.
+ */
+// 🌟 ĐÃ SỬA: Thay int bằng ButtonIndex để khớp với ButtonManager::isPressed() 🌟
+bool checkPhysicalButtonOneShot(ButtonIndex buttonIndex) {
+    // Ép kiểu ButtonIndex thành int để truy cập mảng tracking
+    int index = (int)buttonIndex;
+
+    // 1. Lấy trạng thái hiện tại (giữ) từ ButtonManager
+    bool currentState = physicalButtons.isPressed(buttonIndex);
+    
+    // 2. So sánh: Vừa nhấn = Đang nhấn VÀ Lần trước KHÔNG nhấn
+    bool justPressed = (currentState == true && physicalButtonLastState[index] == false);
+    
+    // 3. Cập nhật trạng thái cũ cho lần lặp tiếp theo
+    physicalButtonLastState[index] = currentState; 
+    
+    return justPressed;
+}
 
 // --- SETUP ---
 void setup() {
@@ -45,19 +71,8 @@ void setup() {
     touchButton.begin();
     physicalButtons.begin(); 
     
-    monitor.displayMemoryStatus(); 
-    
-    delay(5000);
-    tft.fillScreen(TFT_BLACK); 
-    
-    // Hướng dẫn ban đầu
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.setTextSize(2);
-    tft.setCursor(10, 10);
-    tft.println("READY!");
-    tft.setTextSize(1);
-    tft.setCursor(10, 40);
-    tft.println("Test 4 buttons and Touch.");
+    // KHỞI TẠO VÀ VẼ MENU 
+    menuManager.drawMenu(); 
     
     ledControl.begin(); 
 }
@@ -66,75 +81,48 @@ void setup() {
 void loop() {
     // 1. CẬP NHẬT TRẠNG THÁI NÚT VÀ TOUCH
     physicalButtons.update(); 
-    touchButton.checkButton(); // Cần gọi để logic chống rung được thực thi và cập nhật trạng thái isPressed
+    touchButton.checkButton(); 
 
-    bool isTouching = touchButton.isTouched(); 
-
-    // 2. XÁC ĐỊNH TRẠNG THÁI HIỂN THỊ MỚI
-    DisplayState newState = STATE_NONE;
+    // 2. XỬ LÝ INPUT ĐIỀU HƯỚNG (NAVIGATION) - Dùng hàm trợ giúp One-Shot
     
-    // Ưu tiên nút vật lý
-    if (physicalButtons.isPressed(BTN_UP)) { 
-        newState = STATE_UP;
-    } else if (physicalButtons.isPressed(BTN_DOWN)) { 
-        newState = STATE_DOWN;
-    } else if (physicalButtons.isPressed(BTN_LEFT)) { 
-        newState = STATE_LEFT;
-    } else if (physicalButtons.isPressed(BTN_RIGHT)) { 
-        newState = STATE_RIGHT;
-    } else if (isTouching) { 
-        newState = STATE_TOUCH;
+    if (checkPhysicalButtonOneShot(BTN_UP)) { 
+        menuManager.handleInput(BTN_UP);
+    } else if (checkPhysicalButtonOneShot(BTN_DOWN)) { 
+        menuManager.handleInput(BTN_DOWN);
+    } else if (checkPhysicalButtonOneShot(BTN_LEFT)) { 
+        menuManager.handleInput(BTN_LEFT);
+    } else if (checkPhysicalButtonOneShot(BTN_RIGHT)) { 
+        menuManager.handleInput(BTN_RIGHT);
     } 
-
-    // 3. 🌟 LOGIC CHỐNG NHÒE: CHỈ CẬP NHẬT MÀN HÌNH KHI TRẠNG THÁI THAY ĐỔI 🌟
-    if (newState != previousState) {
+    
+    // 3. NÚT CHỌN (SELECT/ENTER) - Dùng Touch Button
+    if (touchButton.checkButton()) { 
+        int selectedID = menuManager.getSelectedItem();
+        const char* selectedLabel = menuManager.getItemLabel(selectedID); 
         
-        // 3a. XÓA KHU VỰC CŨ TRƯỚC KHI VẼ MỚI
+        Serial.printf("ACTION: Selected Item (ID %d): %s\n", selectedID, selectedLabel);
+        
+        // --- HIỂN THỊ HÀNH ĐỘNG CHỌN ---
         tft.fillRect(MSG_X, MSG_Y, MSG_WIDTH, MSG_HEIGHT, TFT_BLACK); 
         tft.setCursor(MSG_X, MSG_Y); 
         tft.setTextSize(2);
+        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+        tft.printf("SELECTED: %s", selectedLabel); 
 
-        // 3b. VẼ NỘI DUNG MỚI DỰA TRÊN TRẠNG THÁI
-        switch (newState) {
-            case STATE_UP:
-                tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-                tft.println("UP Pressed!");
-                break;
-            case STATE_DOWN:
-                tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-                tft.println("DOWN Pressed!");
-                break;
-            case STATE_LEFT:
-                tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-                tft.println("LEFT Pressed!");
-                break;
-            case STATE_RIGHT:
-                tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-                tft.println("RIGHT Pressed!");
-                break;
-            case STATE_TOUCH:
-                tft.setTextColor(TFT_GREEN, TFT_BLACK);
-                tft.println("TOUCH Action!");
-                break;
-            case STATE_NONE:
-            default:
-                // Trạng thái NONE: khu vực đã được xóa ở 3a, không in gì
-                break;
-        }
+        // Giữ thông báo trong thời gian ngắn và vẽ lại Menu
+        delay(1000); 
+        menuManager.drawMenu(); 
+    } 
 
-        // 3c. LƯU TRẠNG THÁI MỚI để so sánh ở lần lặp tiếp theo
-        previousState = newState;
-    }
-    
-    // DEBUG RAW STATE (Giữ nguyên)
+    // 4. DEBUG RAW STATE (Giữ nguyên)
     int rawState = digitalRead(TOUCH_BUTTON_PIN);
     
     tft.setTextSize(1);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.setCursor(10, 150);
+    tft.setCursor(10, 200); 
     tft.printf("RAW State (Pin %d): %d", TOUCH_BUTTON_PIN, rawState);
     
-    // Chạy hiệu ứng LED
+    // 5. Chạy hiệu ứng LED
     delay(10); 
     ledControl.runGreenFade(); 
 }

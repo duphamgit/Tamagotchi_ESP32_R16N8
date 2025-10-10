@@ -273,4 +273,5 @@
  lib/TFT_eSPI/Extensions/Smooth_font.h lib/TFT_eSPI/Extensions/Button.h \
  lib/TFT_eSPI/Extensions/Sprite.h include/SystemMonitor.h \
  include/InputManager.h include/ButtonManager.h include/LEDManager.h \
- .pio/libdeps/esp32-s3-devkitc-1/Adafruit\ NeoPixel/Adafruit_NeoPixel.h
+ .pio/libdeps/esp32-s3-devkitc-1/Adafruit\ NeoPixel/Adafruit_NeoPixel.h \
+ include/MenuManager.h
