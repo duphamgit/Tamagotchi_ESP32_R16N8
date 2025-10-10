@@ -177,7 +177,7 @@
  C:/Users/Du/.platformio/packages/framework-arduinoespressif32@3.20014.231204/tools/sdk/esp32s3/include/esp_hw_support/include/soc/esp32/spiram.h \
  C:/Users/Du/.platformio/packages/framework-arduinoespressif32@3.20014.231204/cores/esp32/io_pin_remap.h \
  C:/Users/Du/.platformio/packages/framework-arduinoespressif32@3.20014.231204/cores/esp32/Arduino.h \
- include/SystemMonitor.h lib/TFT_eSPI/TFT_eSPI.h \
+ lib/TFT_eSPI/TFT_eSPI.h \
  C:/Users/Du/.platformio/packages/framework-arduinoespressif32@3.20014.231204/cores/esp32/Print.h \
  C:/Users/Du/.platformio/packages/framework-arduinoespressif32@3.20014.231204/libraries/SPI/src/SPI.h \
  C:/Users/Du/.platformio/packages/framework-arduinoespressif32@3.20014.231204/cores/esp32/esp32-hal-spi.h \
@@ -271,6 +271,6 @@
  lib/TFT_eSPI/Fonts/Custom/Satisfy_24.h \
  lib/TFT_eSPI/Fonts/Custom/Yellowtail_32.h \
  lib/TFT_eSPI/Extensions/Smooth_font.h lib/TFT_eSPI/Extensions/Button.h \
- lib/TFT_eSPI/Extensions/Sprite.h include/InputManager.h \
- include/LEDManager.h \
+ lib/TFT_eSPI/Extensions/Sprite.h include/SystemMonitor.h \
+ include/InputManager.h include/ButtonManager.h include/LEDManager.h \
  .pio/libdeps/esp32-s3-devkitc-1/Adafruit\ NeoPixel/Adafruit_NeoPixel.h

@@ -3,34 +3,26 @@
 
 #include <Arduino.h>
 
-/**
- * @brief Class quản lý tất cả các đầu vào (Input) của hệ thống, ví dụ: nút bấm vật lý, cảm biến chạm.
- */
 class InputManager {
 private:
     const int TOUCH_PIN;
     unsigned long lastDebounceTime = 0;
-    const unsigned long debounceDelay = 50; // 50ms chống rung
-
-    bool isPressed = false;
+    const unsigned long debounceDelay = 100; // 100ms
+    
+    bool isPressed = false; 
+    int lastReading = LOW; 
 
 public:
-    /**
-     * @brief Constructor.
-     * @param pin GPIO được kết nối với cảm biến TP223.
-     */
     InputManager(int pin);
-
-    /**
-     * @brief Khởi tạo chân GPIO.
-     */
     void begin();
-
-    /**
-     * @brief Kiểm tra trạng thái nút bấm và xử lý chống rung (debounce).
-     * @return true nếu nút vừa được nhấn (phát hiện cạnh lên/xuống).
-     */
-    bool checkButton();
+    
+    // Vẫn gọi trong loop() để CẬP NHẬT trạng thái isPressed
+    bool checkButton(); 
+    
+    // 🌟 HÀM MỚI: Trả về trạng thái chạm LIÊN TỤC 🌟
+    bool isTouched() {
+        return isPressed;
+    }
 };
 
 #endif // INPUT_MANAGER_H
