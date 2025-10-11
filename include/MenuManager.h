@@ -13,10 +13,10 @@ struct MenuItem {
 
 // Định nghĩa các ID Menu (Nên khớp với ButtonIndex cho dễ quản lý)
 enum MenuID {
-    MENU_FEED    = 0, // Tương ứng với BTN_UP
-    MENU_PLAY    = 1, // Tương ứng với BTN_DOWN
-    MENU_CLEAN   = 2, // Tương ứng với BTN_LEFT
-    MENU_STATUS  = 3, // Tương ứng với BTN_RIGHT
+    MENU_FEED    = 0, 
+    MENU_PLAY    = 1, 
+    MENU_CLEAN   = 2, 
+    MENU_STATUS  = 3, 
     MENU_COUNT   = 4
 };
 
@@ -25,17 +25,17 @@ class MenuManager {
 private:
     TFT_eSPI& tft; // Tham chiếu TFT
     
-    // Mảng chứa dữ liệu của các mục Menu (là Private, chỉ được truy cập qua Getter)
+    // Mảng chứa dữ liệu của các mục Menu
     const MenuItem items[MENU_COUNT] = {
-        {"FEED", "🍔", MENU_FEED},
-        {"PLAY", "⚽", MENU_PLAY},
-        {"CLEAN", "🧼", MENU_CLEAN},
-        {"STATUS", "📊", MENU_STATUS}
+        {"FEED", "x", MENU_FEED},
+        {"PLAY", "x", MENU_PLAY},
+        {"CLEAN", "x", MENU_CLEAN},
+        {"STATUS", "x", MENU_STATUS}
     };
     
     int selectedItem = MENU_FEED; // Mục hiện đang được chọn
 
-    // Hàm phụ trợ để vẽ từng mục (nên là private vì chỉ được gọi nội bộ)
+    // Hàm phụ trợ để vẽ từng mục
     void drawItem(int itemIndex, bool isSelected);
 
 public:
@@ -47,13 +47,19 @@ public:
     void drawMenu();
 
     /**
-     * @brief Xử lý input từ các nút bấm (UP, DOWN, LEFT, RIGHT) và cập nhật mục được chọn.
+     * @brief Xử lý input từ các nút bấm (UP, DOWN) và cập nhật mục được chọn.
      * @param pressedIndex Index của nút đã được nhấn (từ ButtonManager).
      */
     void handleInput(int pressedIndex);
     
     /**
-     * @brief Trả về ID của mục hiện tại đang được chọn (dùng cho logic game).
+     * @brief Tạo hiệu ứng chuyển cảnh cho mục được chọn.
+     */
+    // 🌟 KHAI BÁO HÀM MỚI 🌟
+    void animateSelection(int itemIndex); 
+
+    /**
+     * @brief Trả về ID của mục hiện tại đang được chọn.
      */
     int getSelectedItem() const {
         return selectedItem;
@@ -61,8 +67,6 @@ public:
 
     /**
      * @brief Trả về nhãn (label) của một mục Menu dựa trên ID.
-     * @param id ID của mục Menu cần lấy nhãn.
-     * @return Con trỏ tới chuỗi nhãn của mục.
      */
     const char* getItemLabel(int id) const { 
         if (id >= 0 && id < MENU_COUNT) {
@@ -70,12 +74,6 @@ public:
         }
         return "ERROR";
     }
-
-    // 🌟 KHAI BÁO CÔNG KHAI mảng items để fix lỗi biên dịch (Tùy chọn, nếu không muốn dùng Getter) 🌟
-    // Nếu bạn muốn giữ logic cũ trong main.cpp (truy cập trực tiếp), bạn có thể
-    // di chuyển const MenuItem items[MENU_COUNT] từ private lên public. 
-    // Nhưng cách dùng getItemLabel() là chuẩn C++ hơn.
-
 };
 
 #endif // MENU_MANAGER_H
