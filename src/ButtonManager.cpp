@@ -1,7 +1,9 @@
 #include "ButtonManager.h"
 
-// Dữ liệu cấu hình: Dùng mảng pin toàn cục
-static const int BUTTON_PINS[BTN_COUNT] = {12, 11, 10, 9}; 
+// 🌟 Đã sửa lỗi LINKER: Định nghĩa mảng PIN tĩnh cho class ButtonManager 🌟
+// KHÔNG dùng 'static' ở đây. Phải dùng `ButtonManager::` để định nghĩa member.
+const int ButtonManager::BUTTON_PINS[BTN_COUNT] = {12, 11, 10, 9}; 
+// Thứ tự: BTN_UP(0), BTN_DOWN(1), BTN_SELECT(2), BTN_MENU(3)
 
 ButtonManager::ButtonManager() {
     // Khởi tạo các phần tử trong mảng
@@ -11,11 +13,12 @@ ButtonManager::ButtonManager() {
 }
 
 void ButtonManager::begin() {
-    Serial.println("ButtonManager: Initializing 4 physical buttons...");
+    // 🌟 Đã sửa: Cập nhật Serial output cho các nút mới 🌟
+    Serial.println("ButtonManager: Initializing 4 physical buttons (UP, DOWN, SELECT, MENU)..."); 
     for (int i = 0; i < NUM_BUTTONS; i++) {
         // Sử dụng INPUT_PULLUP, trạng thái LOW = PRESSED
         pinMode(buttons[i].pin, INPUT_PULLUP); 
-        Serial.printf("  - Physical Button on GPIO %d initialized.\n", buttons[i].pin);
+        Serial.printf("  - Button %d (GPIO %d) initialized.\n", i, buttons[i].pin); 
     }
 }
 
@@ -25,24 +28,21 @@ void ButtonManager::update() {
 
         int reading = digitalRead(btn.pin);
         
-        // 🌟 KHẮC PHỤC LỖI LOGIC: Chỉ reset timer khi tín hiệu RAW thay đổi 🌟
+        // Logic chống rung (Giữ nguyên)
         if (reading != btn.lastReading) {
             btn.lastDebounceTime = millis();
         }
 
-        // Nếu thời gian chống rung đã trôi qua (100ms)
         if ((millis() - btn.lastDebounceTime) > btn.debounceDelay) {
             
-            // Xác định trạng thái ổn định hiện tại
             bool stablePressed = (reading == LOW); 
 
-            // Cập nhật trạng thái đã lọc (isPressed)
             if (stablePressed != btn.isPressed) {
                 btn.isPressed = stablePressed; 
             }
         }
         
-        // CẬP NHẬT trạng thái RAW cuối cùng cho lần lặp tiếp theo
+        // CẬP NHẬT trạng thái RAW cuối cùng
         btn.lastReading = reading;
     }
 }

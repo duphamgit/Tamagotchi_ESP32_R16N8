@@ -15,9 +15,9 @@ const int MSG_HEIGHT = 20;
 // --- KHAI BÁO THÔNG SỐ PHẦN CỨNG TOÀN CỤC ---
 const int TOUCH_BUTTON_PIN = 13; 
 
-// --- KHAI BÁO ENUM CHO TRẠNG THÁI HIỂN THỊ ---
+// --- KHAI BÁO ENUM CHO TRẠNG THÁI HIỂN THỊ ---(Giữ nguyên)
 enum DisplayState {
-    STATE_MENU,       // Trạng thái hiện tại: Đang ở Menu
+    STATE_MENU,       
     STATE_FEED,
     STATE_PLAY,
     STATE_CLEAN,
@@ -27,7 +27,7 @@ enum DisplayState {
 // --- KHAI BÁO CÁC ĐỐI TƯỢNG TOÀN CỤC (GLOBAL OBJECTS) ---
 TFT_eSPI tft = TFT_eSPI(); 
 SystemMonitor monitor(tft);
-InputManager touchButton(TOUCH_BUTTON_PIN); 
+InputManager touchButton(TOUCH_BUTTON_PIN); // Giữ lại cho mục đích debug/dùng Touch cho việc khác
 ButtonManager physicalButtons;              
 LEDManager ledControl;
 MenuManager menuManager(tft); 
@@ -35,28 +35,20 @@ MenuManager menuManager(tft);
 // --- BIẾN TRẠNG THÁI TOÀN CỤC ---
 DisplayState previousState = STATE_MENU; 
 
-// TRACKING TRẠNG THÁI CHO ONE-SHOT (Tạm thời)
-// Kích thước mảng phải đủ lớn cho 4 nút (BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT)
-bool physicalButtonLastState[4] = {false, false, false, false};
+// 🌟 LOGIC ONE-SHOT BẰNG HÀM TRỢ GIÚP 🌟
+bool physicalButtonLastState[BTN_COUNT] = {false, false, false, false}; // Sử dụng BTN_COUNT
 
-
-/**
- * @brief Hàm trợ giúp để mô phỏng checkButton (One-Shot) cho ButtonManager.
- * @param buttonIndex Index của nút cần kiểm tra (BTN_UP, BTN_DOWN...).
- * @return true nếu nút VỪA được nhấn (rising edge), false nếu không.
- */
-// 🌟 ĐÃ SỬA: Thay int bằng ButtonIndex để khớp với ButtonManager::isPressed() 🌟
 bool checkPhysicalButtonOneShot(ButtonIndex buttonIndex) {
-    // Ép kiểu ButtonIndex thành int để truy cập mảng tracking
     int index = (int)buttonIndex;
+    
+    if (index < 0 || index >= BTN_COUNT) return false; 
 
-    // 1. Lấy trạng thái hiện tại (giữ) từ ButtonManager
     bool currentState = physicalButtons.isPressed(buttonIndex);
     
-    // 2. So sánh: Vừa nhấn = Đang nhấn VÀ Lần trước KHÔNG nhấn
+    // So sánh: Vừa nhấn = Đang nhấn VÀ Lần trước KHÔNG nhấn
     bool justPressed = (currentState == true && physicalButtonLastState[index] == false);
     
-    // 3. Cập nhật trạng thái cũ cho lần lặp tiếp theo
+    // Cập nhật trạng thái cũ cho lần lặp tiếp theo
     physicalButtonLastState[index] = currentState; 
     
     return justPressed;
@@ -67,11 +59,14 @@ void setup() {
     Serial.begin(115200);
     delay(1000); 
     
-    monitor.begin(); 
     touchButton.begin();
     physicalButtons.begin(); 
     
-    // KHỞI TẠO VÀ VẼ MENU 
+    // 1. Khởi tạo màn hình
+    tft.init();
+    tft.setRotation(0); 
+    
+    // 2. Vẽ Menu lần đầu tiên
     menuManager.drawMenu(); 
     
     ledControl.begin(); 
@@ -83,20 +78,20 @@ void loop() {
     physicalButtons.update(); 
     touchButton.checkButton(); 
 
-    // 2. XỬ LÝ INPUT ĐIỀU HƯỚNG (NAVIGATION) - Dùng hàm trợ giúp One-Shot
+    // 2. XỬ LÝ INPUT ĐIỀU HƯỚNG (NAVIGATION) - Chỉ dùng UP và DOWN
     
+    // BTN_UP: Di chuyển Lùi
     if (checkPhysicalButtonOneShot(BTN_UP)) { 
         menuManager.handleInput(BTN_UP);
-    } else if (checkPhysicalButtonOneShot(BTN_DOWN)) { 
+    } 
+    // BTN_DOWN: Di chuyển Tiến
+    else if (checkPhysicalButtonOneShot(BTN_DOWN)) { 
         menuManager.handleInput(BTN_DOWN);
-    } else if (checkPhysicalButtonOneShot(BTN_LEFT)) { 
-        menuManager.handleInput(BTN_LEFT);
-    } else if (checkPhysicalButtonOneShot(BTN_RIGHT)) { 
-        menuManager.handleInput(BTN_RIGHT);
     } 
     
-    // 3. NÚT CHỌN (SELECT/ENTER) - Dùng Touch Button
-    if (touchButton.checkButton()) { 
+    // 3. NÚT CHỌN (SELECT/ENTER) - Dùng Nút vật lý BTN_SELECT
+    // 🌟 ĐÃ SỬA: Thay Touch Button bằng BTN_SELECT 🌟
+    if (checkPhysicalButtonOneShot(BTN_SELECT)) { 
         int selectedID = menuManager.getSelectedItem();
         const char* selectedLabel = menuManager.getItemLabel(selectedID); 
         
@@ -113,7 +108,7 @@ void loop() {
         delay(1000); 
         menuManager.drawMenu(); 
     } 
-
+    
     // 4. DEBUG RAW STATE (Giữ nguyên)
     int rawState = digitalRead(TOUCH_BUTTON_PIN);
     
