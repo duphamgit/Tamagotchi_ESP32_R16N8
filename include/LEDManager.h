@@ -15,7 +15,7 @@ class LEDManager {
 private:
     Adafruit_NeoPixel strip;
     unsigned long lastUpdateTime = 0;
-    const unsigned long updateInterval = 10; // Cập nhật độ sáng mỗi 10ms (tạo chuyển động mượt)
+    const unsigned long updateInterval = 45; // Cập nhật độ sáng mỗi 10ms (tạo chuyển động mượt)
 
     int brightness = 0; // Độ sáng hiện tại (0-255)
     int step = -1;       // Hướng tăng/giảm độ sáng (+1 hoặc -1)
