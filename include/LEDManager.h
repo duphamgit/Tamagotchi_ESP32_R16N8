@@ -21,7 +21,7 @@ private:
     int step = -1;       // Hướng tăng/giảm độ sáng (+1 hoặc -1)
     
     // ĐỘ SÁNG TỐI ĐA MỚI (Giảm từ 255 xuống 80 để bảo vệ mắt)
-    const int MAX_BRIGHTNESS = 50; 
+    const int MAX_BRIGHTNESS = 40; 
 
 public:
     /**

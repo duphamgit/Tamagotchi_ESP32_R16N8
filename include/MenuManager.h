@@ -13,11 +13,15 @@ struct MenuItem {
 
 // Định nghĩa các ID Menu (Nên khớp với ButtonIndex cho dễ quản lý)
 enum MenuID {
-    MENU_FEED    = 0, 
-    MENU_PLAY    = 1, 
-    MENU_CLEAN   = 2, 
-    MENU_STATUS  = 3, 
-    MENU_COUNT   = 4
+    MENU_WIFI    = 0, 
+    MENU_BL    = 1, 
+    MENU_RF   = 2, 
+    MENU_GPS  = 3,
+    MENU_TIME  = 4, 
+    MENU_ESPnow  = 5, 
+    MENU_SETTINGS  = 6, 
+    MENU_MISC  = 7,
+    MENU_COUNT   = 8 // Tổng số mục Menu
 };
 
 
@@ -27,13 +31,17 @@ private:
     
     // Mảng chứa dữ liệu của các mục Menu
     const MenuItem items[MENU_COUNT] = {
-        {"FEED", "x", MENU_FEED},
-        {"PLAY", "x", MENU_PLAY},
-        {"CLEAN", "x", MENU_CLEAN},
-        {"STATUS", "x", MENU_STATUS}
+        {"WIFI", " ", MENU_WIFI},
+        {"BL", " ", MENU_BL},
+        {"RF", " ", MENU_RF},
+        {"GPS", " ", MENU_GPS},
+        {"TIME", " ", MENU_TIME},
+        {"ESPnow", " ", MENU_ESPnow}, 
+        {"SETTINGS", " ", MENU_SETTINGS},
+        {"MISC", " ", MENU_MISC}
     };
     
-    int selectedItem = MENU_FEED; // Mục hiện đang được chọn
+    int selectedItem = MENU_WIFI; // Mục hiện đang được chọn
 
     // Hàm phụ trợ để vẽ từng mục
     void drawItem(int itemIndex, bool isSelected);
