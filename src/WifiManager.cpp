@@ -1,199 +1,235 @@
 #include "WifiManager.h"
-#include "ButtonManager.h" // Cần để truy cập các hằng số pin
-#include <algorithm>     // Cần cho hàm std::min() và std::max()
-#include <WiFi.h>        // 🌟 THƯ VIỆN WI-FI THỰC TẾ 🌟
+#include <WiFi.h>
 
-// --- MÀU SẮC & CẤU HÌNH ---
-#define COLOR_WIFI_BG TFT_BLACK
-#define COLOR_WIFI_TITLE TFT_CYAN
-#define COLOR_WIFI_TEXT TFT_WHITE
-#define COLOR_WIFI_EXIT TFT_YELLOW
-#define COLOR_WIFI_GOOD TFT_GREEN     // RSSI tốt
-#define COLOR_WIFI_MEDIUM 0xFEE0      // Màu Cam/Vàng (Trung bình)
-#define COLOR_WIFI_WEAK TFT_RED       // RSSI yếu
-
-// Cấu hình RSSI cho Bar Graph
-#define RSSI_MAX_DBM -30 // Mốc tín hiệu mạnh nhất (100% Bar)
-#define RSSI_MIN_DBM -90 // Mốc tín hiệu yếu nhất (0% Bar)
-
-// --- KHÔNG CÒN SỬ DỤNG MOCK DATA NỮA ---
-
-
+// --- CONSTRUCTOR ---
 WifiManager::WifiManager(TFT_eSPI& displayRef) : tft(displayRef) {
-    // Không cần logic khởi tạo ở đây.
-}
-
-/**
- * @brief Chuyển đổi RSSI (-30 đến -90 dBm) thành màu sắc dựa trên cường độ.
- */
-uint16_t getRssiColor(int32_t rssi) {
-    if (rssi >= -50) return COLOR_WIFI_GOOD;      // Rất tốt
-    if (rssi >= -70) return COLOR_WIFI_MEDIUM;     // Trung bình
-    return COLOR_WIFI_WEAK;                       // Yếu
+    apCount = 0;
+    scrollIndex = 0;
+    selectedIndex = -1; // -1 cho trạng thái chưa chọn
 }
 
 void WifiManager::begin() {
-    // Khởi tạo Wi-Fi ở chế độ Station (STA) để quét mạng
-    WiFi.mode(WIFI_STA);
-    Serial.println("WifiManager: Initialized. Starting initial Wi-Fi scan...");
-    scanNetworks();
+    WiFi.mode(WIFI_STA); // Đảm bảo ở chế độ Station
+    Serial.println("WifiManager initialized. WiFi set to STA mode.");
 }
 
+// --- HÀM VẼ TỪNG MỤC MẠNG ---
 /**
- * @brief Vẽ biểu đồ cường độ tín hiệu (Bar Graph).
- * @param rssi Giá trị RSSI.
- * @param x, y Vị trí.
+ * @brief Vẽ một mục mạng Wi-Fi (Access Point) tại vị trí Y trên màn hình.
+ * @param apIndex Index của AP trong mảng aps[] (0 đến apCount-1).
+ * @param screenY Tọa độ Y trên màn hình để vẽ mục này.
+ * @param isSelected Trạng thái chọn (true/false).
  */
-void WifiManager::drawRssiBar(int32_t rssi, int x, int y) {
-    // Giới hạn RSSI trong khoảng quan tâm (từ -90 đến -30)
-    int32_t limitedRssi = std::max(std::min(rssi, RSSI_MAX_DBM), RSSI_MIN_DBM);
+void WifiManager::drawAPItem(int apIndex, int screenY, bool isSelected) {
+    if (apIndex >= apCount || apIndex < 0) return;
 
-    // Tính toán tỷ lệ phần trăm cường độ (0-100%)
-    float rssiRange = (float)(RSSI_MAX_DBM - RSSI_MIN_DBM); // 60
-    // Lượng RSSI đã vượt qua mốc yếu nhất
-    float currentRssi = (float)(limitedRssi - RSSI_MIN_DBM); 
+    // Chiều rộng và chiều cao được định nghĩa trong WifiManager.h
+    int w = DISPLAY_W;
+    int h = ITEM_H;
+
+    // Màu sắc
+    uint16_t bgColor = isSelected ? TFT_DARKCYAN : TFT_BLACK;
+    uint16_t textColor = isSelected ? TFT_WHITE : TFT_CYAN;
     
-    // Chiều rộng thanh tín hiệu
-    int barWidth = (int)((currentRssi / rssiRange) * RSSI_BAR_WIDTH);
+    // Xóa vùng vẽ cũ
+    tft.fillRect(0, screenY, w, h, bgColor); 
 
-    // 1. Vẽ nền thanh (màu xám tối) và khung
-    tft.fillRect(x, y, RSSI_BAR_WIDTH, RSSI_BAR_HEIGHT, TFT_DARKGREY);
-    tft.drawRect(x, y, RSSI_BAR_WIDTH, RSSI_BAR_HEIGHT, TFT_LIGHTGREY); 
+    // 1. Số thứ tự (01.)
+    tft.setCursor(5, screenY + 3);
+    tft.setTextSize(1);
+    tft.setTextColor(textColor);
+    // Sử dụng apIndex + 1 để hiển thị số thứ tự từ 1
+    tft.printf("%02d.", apIndex + 1);
 
-    // 2. Vẽ thanh tín hiệu
-    uint16_t barColor = getRssiColor(limitedRssi);
-    if (barWidth > 0) {
-        // Đảm bảo không vượt quá chiều rộng tối đa và vẽ thanh tín hiệu
-        tft.fillRect(x, y, std::min(barWidth, RSSI_BAR_WIDTH), RSSI_BAR_HEIGHT, barColor);
+    // 2. Tên SSID
+    tft.setCursor(45, screenY + 3);
+    // Cắt bớt tên SSID nếu quá dài
+    String ssid = aps[apIndex].ssid;
+    if (ssid.length() > 18) {
+        ssid = ssid.substring(0, 15) + "...";
     }
-}
+    tft.print(ssid);
 
-/**
- * @brief Vẽ một mục AP (SSID, Bar Graph, Icon).
- */
-void WifiManager::drawAPItem(int index, int y) {
-    if (index >= numNetworks) return;
-
-    // 1. Xóa dòng
-    tft.fillRect(0, y, tft.width(), ROW_HEIGHT, COLOR_WIFI_BG); 
-    
-    // 2. Vẽ SSID (Tên mạng)
-    tft.setCursor(5, y + 8);
+    // 3. Cường độ sóng (RSSI)
     tft.setTextSize(1);
-    tft.setTextColor(COLOR_WIFI_TEXT);
-    tft.print(networks[index].ssid.substring(0, 15)); 
+    tft.setTextColor(TFT_LIGHTGREY);
+    tft.setCursor(w - 45, screenY + 3);
+    tft.printf("%d dBm", aps[apIndex].rssi);
 
-    // 3. Tính toán vị trí cho Graph và RSSI text
-    // -30: khoảng trống giữa Bar và RSSI text
-    int textX = tft.width() - 5 - 30; // Vị trí cho giá trị dBm (ví dụ: -75)
-    int graphX = tft.width() - 5 - RSSI_BAR_WIDTH - 35; // Vị trí cho thanh graph
-    int iconX = tft.width() - 20; // Vị trí cho icon khóa/mở
-
-    // 4. Vẽ biểu đồ tín hiệu (Graph)
-    drawRssiBar(networks[index].rssi, graphX, y + 9); 
-
-    // 5. Vẽ giá trị RSSI text
-    tft.setCursor(textX, y + 8);
-    tft.setTextSize(1);
-    tft.setTextColor(COLOR_WIFI_TEXT);
-    tft.printf("%d", networks[index].rssi);
-
-    // 6. Vẽ Icon Khóa/Mở (sử dụng ký tự)
-    tft.setCursor(iconX, y + 8);
-    tft.setTextSize(2); 
-    tft.setTextColor(COLOR_WIFI_TEXT);
+    // 4. Mã hóa 
+    tft.setCursor(w - 45, screenY + 12);
     
-    // Kiểm tra loại mã hóa. Nếu là WIFI_AUTH_OPEN (0) thì là mạng mở.
-    if (networks[index].encryptionType != WIFI_AUTH_OPEN) {
-        // Ký tự khóa (Lock Icon)
-        tft.print('L'); 
+    // Thay thế bằng một giả định đơn giản dựa trên tên:
+    if (aps[apIndex].rssi < -80) {
+        tft.print("Weak");
+    } else if (aps[apIndex].rssi > -50) {
+        tft.print("Strong");
     } else {
-        // Ký tự mở (Unlock Icon)
-        tft.print('U'); 
+        tft.print("Normal");
+    }
+
+    // Vẽ đường chia nếu không phải là mục cuối cùng của màn hình
+    if (screenY + h < END_Y) {
+        tft.drawFastHLine(0, screenY + h - 1, w, TFT_DARKGREY);
     }
 }
 
-int WifiManager::scanNetworks() {
-    // Sử dụng biến cờ để tránh gọi scanNetworks quá nhiều lần cùng lúc
-    if (isScanning) return numNetworks;
-    
-    isScanning = true;
-    
-    // Xóa danh sách cũ và hiển thị thông báo "Scanning..."
-    tft.fillRect(0, START_Y, tft.width(), tft.height() - START_Y - 40, COLOR_WIFI_BG); 
-    tft.setCursor(5, START_Y + 10);
-    tft.setTextSize(1);
-    tft.setTextColor(COLOR_WIFI_EXIT);
-    tft.println("Dang Quet... Vui long doi.");
-    
-    // 🌟 THỰC HIỆN SCAN WI-FI THỰC TẾ 🌟
-    // n = Số lượng mạng tìm thấy
-    int n = WiFi.scanNetworks(false, false); 
 
-    numNetworks = 0;
+// --- HÀM VẼ KHUNG TIÊU ĐỀ ---
+void WifiManager::drawHeader() {
+    tft.fillRect(0, 0, DISPLAY_W, HEADER_H, TFT_BLACK);
     
-    if (n > 0) {
-        Serial.printf("Found %d networks.\n", n);
-        // Chỉ lưu tối đa MAX_APS_DISPLAY mạng
-        int maxIndex = std::min(n, MAX_APS_DISPLAY);
-        
-        for (int i = 0; i < maxIndex; ++i) {
-            // Lấy thông tin mạng bằng các hàm WiFi.
-            networks[i].ssid = WiFi.SSID(i);
-            networks[i].rssi = WiFi.RSSI(i);
-            networks[i].encryptionType = WiFi.encryptionType(i); // Sử dụng enum của WiFi.h
-            numNetworks++;
-        }
-        // Sau khi lấy dữ liệu, giải phóng bộ nhớ của quá trình scan
-        WiFi.scanDelete(); 
-    } else {
-        Serial.println("No networks found.");
-    }
-    
-    isScanning = false;
-    
-    // Sau khi scan xong, vẽ lại toàn bộ màn hình với kết quả
-    drawScreen();
-
-    return numNetworks;
-}
-
-void WifiManager::drawScreen() {
-    tft.fillScreen(COLOR_WIFI_BG); 
-    
-    // 1. Vẽ tiêu đề
-    tft.setCursor(15, 5);
+    // Căn giữa tiêu đề
     tft.setTextSize(2);
-    tft.setTextColor(COLOR_WIFI_TITLE);
-    tft.println("--- WIFI SCAN ---");
-    tft.drawFastHLine(0, 35, tft.width(), COLOR_WIFI_TITLE);
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    
+    tft.setTextDatum(MC_DATUM); 
+    tft.drawString("WIFI SCANNER", DISPLAY_W / 2, HEADER_H / 2);
 
-    // 2. Vẽ Danh sách AP
-    if (numNetworks > 0) {
-        for (int i = 0; i < numNetworks; i++) {
-            drawAPItem(i, START_Y + i * ROW_HEIGHT);
-        }
-    } else {
-        // Thông báo nếu không có mạng
-        tft.setCursor(5, START_Y + 10);
-        tft.setTextSize(2);
-        tft.setTextColor(COLOR_WIFI_TEXT);
-        if (isScanning) {
-             tft.println("Dang Quet... (Vui long doi)");
-        } else {
-             tft.println("Khong tim thay mang nao.");
-        }
-    }
-
-    // 3. Hướng dẫn thoát và quét lại
-    tft.setTextSize(1);
-    tft.setTextColor(COLOR_WIFI_EXIT);
-    tft.setCursor(5, tft.height() - 20);
-    // Sử dụng ButtonManager::BUTTON_PINS để hiển thị GPIO cho người dùng
-    tft.printf("BTN_MENU (GPIO %d) THOAT | BTN_SELECT (GPIO %d) QUET LAI", 
-               ButtonManager::BUTTON_PINS[BTN_MENU], ButtonManager::BUTTON_PINS[BTN_SELECT]);
+    // Thiết lập lại điểm neo về góc trên bên trái
+    tft.setTextDatum(TL_DATUM); 
 }
 
-void WifiManager::updateScreen() {
-    // Đây là nơi có thể thêm logic cập nhật liên tục (ví dụ: trạng thái kết nối)
+// --- HÀM VẼ KHUNG CHÂN TRANG ---
+void WifiManager::drawFooter() {
+    tft.fillRect(0, END_Y, DISPLAY_W, FOOTER_H, TFT_DARKGREY);
+    tft.setCursor(5, END_Y + 3);
+    tft.setTextSize(1);
+    tft.setTextColor(TFT_WHITE, TFT_DARKGREY);
+    
+    // Hiển thị thông tin tổng quan
+    int maxScroll = apCount > MAX_AP_DISPLAY ? apCount - MAX_AP_DISPLAY : 0;
+    tft.printf("Total: %d | Scroll: %d/%d | Sel: %d", apCount, scrollIndex, maxScroll, selectedIndex + 1);
+}
+
+// --- HÀM VẼ TOÀN BỘ DANH SÁCH AP ---
+void WifiManager::drawAPList() {
+    // Xóa vùng danh sách (CẦN thiết khi có SCROLL hoặc lần đầu vẽ)
+    tft.fillRect(0, START_Y, DISPLAY_W, END_Y - START_Y, TFT_BLACK);
+
+    if (apCount <= 0) {
+        tft.setCursor(5, START_Y + 10);
+        tft.setTextSize(1);
+        tft.setTextColor(TFT_RED);
+        tft.print("No Networks Found!");
+        return;
+    }
+
+    // Vòng lặp chỉ vẽ các mục hiển thị được trên màn hình
+    int visibleCount = min(apCount - scrollIndex, (int)MAX_AP_DISPLAY);
+
+    for (int i = 0; i < visibleCount; i++) {
+        // apIndex: Index thực tế trong mảng aps[]
+        int apIndex = scrollIndex + i; 
+        // screenY: Tọa độ Y trên màn hình
+        int screenY = START_Y + (i * ITEM_H); 
+        
+        // Vẽ mục
+        drawAPItem(apIndex, screenY, (apIndex == selectedIndex));
+    }
+}
+
+// --- HÀM VẼ TOÀN BỘ MÀN HÌNH (KHÔNG QUÉT) ---
+void WifiManager::drawScreen() {
+    tft.fillScreen(TFT_BLACK);
+    drawHeader();
+    drawAPList(); // Vẽ danh sách hiện tại (có thể rỗng)
+    drawFooter();
+}
+
+
+// --- HÀM THỰC HIỆN QUÉT MẠNG ---
+void WifiManager::scanNetworks() {
+    // Hiển thị trạng thái quét
+    tft.fillRect(0, START_Y, DISPLAY_W, END_Y - START_Y, TFT_BLACK);
+    tft.setCursor(10, START_Y + 50);
+    tft.setTextSize(2);
+    tft.setTextColor(TFT_ORANGE);
+    tft.print("Scanning Networks...");
+    
+    // Thực hiện quét và lấy số lượng mạng
+    int newApCount = WiFi.scanNetworks(false, true); // (async=false, show_hidden=true)
+
+    // Cập nhật lại thông tin
+    apCount = 0;
+    scrollIndex = 0;
+    selectedIndex = -1;
+
+    if (newApCount > 0) {
+        for (int i = 0; i < newApCount && i < 60; i++) {
+            aps[i] = {
+                WiFi.SSID(i),
+                WiFi.RSSI(i),
+                WiFi.channel(i)
+            };
+            apCount++;
+        }
+        selectedIndex = 0; // Chọn mục đầu tiên nếu có mạng
+    }
+
+    // Vẽ lại toàn bộ màn hình với danh sách mới
+    drawScreen();
+    
+    Serial.printf("Scan completed. Found %d networks.\n", apCount);
+}
+
+// --- HÀM XỬ LÝ INPUT (CUỘN) ---
+void WifiManager::handleInput(ButtonIndex pressedIndex) {
+    if (apCount <= 0) return;
+
+    int oldSelectedIndex = selectedIndex;
+    int oldScrollIndex = scrollIndex;
+    bool needsUpdate = false;
+
+    // 1. Cập nhật selectedIndex
+    if (pressedIndex == BTN_UP) {
+        selectedIndex = max(0, selectedIndex - 1);
+        needsUpdate = true;
+    } else if (pressedIndex == BTN_DOWN) {
+        selectedIndex = min(apCount - 1, selectedIndex + 1);
+        needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+        // 2. Cập nhật scrollIndex để mục được chọn nằm trong khung nhìn
+        
+        // Nếu mục được chọn nằm ngoài giới hạn dưới cùng của khung nhìn (cần cuộn xuống)
+        if (selectedIndex >= scrollIndex + MAX_AP_DISPLAY) {
+            scrollIndex = selectedIndex - MAX_AP_DISPLAY + 1;
+        } 
+        // Nếu mục được chọn nằm ngoài giới hạn trên cùng của khung nhìn (cần cuộn lên)
+        else if (selectedIndex < scrollIndex) {
+            scrollIndex = selectedIndex;
+        }
+
+        // Đảm bảo scrollIndex không vượt quá giới hạn trên cùng (0)
+        scrollIndex = max(0, scrollIndex);
+
+        // 3. Nếu có thay đổi, vẽ lại danh sách
+        if (oldSelectedIndex != selectedIndex || oldScrollIndex != scrollIndex) {
+            
+            // 🌟 LOGIC KHẮC PHỤC FLICKER 🌟
+            if (oldScrollIndex == scrollIndex) {
+                // Trường hợp 1: KHÔNG cuộn trang (chỉ thay đổi highlight)
+                // Ta chỉ cần vẽ lại hai mục thay vì toàn bộ 12 mục
+                
+                // Vị trí trên màn hình của mục cũ và mục mới
+                int oldScreenIndex = oldSelectedIndex - scrollIndex;
+                int newScreenIndex = selectedIndex - scrollIndex;
+                
+                // Redraw mục cũ (xóa highlight)
+                drawAPItem(oldSelectedIndex, START_Y + (oldScreenIndex * ITEM_H), false);
+                
+                // Redraw mục mới (thêm highlight)
+                drawAPItem(selectedIndex, START_Y + (newScreenIndex * ITEM_H), true);
+                
+                drawFooter(); // Vẫn cần cập nhật footer (chỉ thay đổi số Sel:)
+            } else {
+                // Trường hợp 2: Có CUỘN trang (scrollIndex thay đổi)
+                // Cần redraw toàn bộ danh sách hiển thị
+                drawAPList();
+                drawFooter();
+            }
+        }
+    }
 }
