@@ -5,7 +5,6 @@
 #include "ButtonManager.h" 
 #include "LEDManager.h" 
 #include "MenuManager.h" 
-// 🌟 THÊM WIFI MANAGER MỚI 🌟
 #include "WifiManager.h" 
 
 
@@ -19,27 +18,27 @@ const int MSG_HEIGHT = 20;
 const int TOUCH_BUTTON_PIN = 13; 
 
 // --- KHAI BÁO ENUM CHO TRẠNG THÁI HIỂN THỊ ---
-// Thêm STATE_WIFI để quản lý màn hình Wi-Fi
 enum DisplayState {
     STATE_MENU,       // Trạng thái hiện tại: Đang ở Menu chính
-    STATE_MONITOR,    // Màn hình System Monitor
+    STATE_MONITOR,    // Màn hình System Monitor (sử dụng tạm cho mục MISC)
     STATE_WIFI        // Trạng thái cho màn hình cấu hình WIFI
 };
 
 // --- KHAI BÁO CÁC ĐỐI TƯỢNG TOÀN CỤC (GLOBAL OBJECTS) ---
 TFT_eSPI tft = TFT_eSPI(); 
-SystemMonitor monitor(tft);
+// SystemMonitor cần được giả định tồn tại, nếu không cần phải comment/xóa
+// SystemMonitor monitor(tft); 
 InputManager touchButton(TOUCH_BUTTON_PIN); 
 ButtonManager physicalButtons;              
 LEDManager ledControl;
 MenuManager menuManager(tft); 
-// 🌟 KHAI BÁO ĐỐI TƯỢNG WIFI MANAGER 🌟
 WifiManager wifiManager(tft);
 
 // --- BIẾN TRẠNG THÁI TOÀN CỤC ---
-DisplayState currentState = STATE_MENU; // Bắt đầu ở trang Menu
+DisplayState currentState = STATE_MENU; 
 
-// 🌟 LOGIC ONE-SHOT BẰNG HÀM TRỢ GIÚP 🌟
+// 🌟 LOGIC ONE-SHOT BẰM HÀM TRỢ GIÚP 🌟
+// Mảng lưu trữ trạng thái nhấn cuối cùng (last state) của các nút vật lý
 bool physicalButtonLastState[BTN_COUNT] = {false, false, false, false}; 
 
 /**
@@ -53,7 +52,7 @@ bool checkPhysicalButtonOneShot(ButtonIndex buttonIndex) {
 
     bool currentState = physicalButtons.isPressed(buttonIndex);
     
-    // So sánh: Vừa nhấn = Đang nhấn VÀ Lần trước KHÔNG nhấn
+    // Vừa nhấn = Đang nhấn VÀ Lần trước KHÔNG nhấn
     bool justPressed = (currentState == true && physicalButtonLastState[index] == false);
     
     // Cập nhật trạng thái cũ cho lần lặp tiếp theo
@@ -74,9 +73,9 @@ void setup() {
     tft.init();
     tft.setRotation(0); 
     
-    // 2. Khởi tạo các Manager khác
-    wifiManager.begin(); // Khởi tạo WifiManager
-    menuManager.drawMenu(); 
+    // 2. Khởi tạo các Manager
+    wifiManager.begin(); // Khởi tạo Wi-Fi và scan lần đầu
+    menuManager.drawMenu(); // Vẽ Menu chính ban đầu
     
     ledControl.begin(); 
 }
@@ -88,36 +87,42 @@ void loop() {
     touchButton.checkButton(); 
     
     // 2. XỬ LÝ QUAY LẠI MENU BẰNG BTN_MENU (Từ bất kỳ màn hình con nào)
+    // Nếu KHÔNG ở Menu và BTN_MENU được nhấn, chuyển về Menu
     if (currentState != STATE_MENU) {
         if (checkPhysicalButtonOneShot(BTN_MENU)) {
             currentState = STATE_MENU;
-            menuManager.drawMenu(); // Vẽ lại Menu
-            Serial.println("State Changed: Sub-Screen -> MENU");
-            return; // Thoát khỏi loop hiện tại để tránh xử lý tiếp
+            menuManager.drawMenu(); 
+            Serial.println("State Changed: Sub-Screen -> MENU (via BTN_MENU)");
+            return; 
         }
     }
     
     // 3. XỬ LÝ LOGIC DỰA TRÊN TRẠNG THÁI HIỆN TẠI
     
     if (currentState == STATE_MENU) {
-        // --- Xử lý điều hướng UP/DOWN ---
-        if (checkPhysicalButtonOneShot(BTN_UP)) { 
-            menuManager.handleInput(BTN_UP);
-        } else if (checkPhysicalButtonOneShot(BTN_DOWN)) { 
-            menuManager.handleInput(BTN_DOWN);
+        // --- Xử lý điều hướng UP/DOWN (Di chuyển trong Menu) ---
+         if (checkPhysicalButtonOneShot(BTN_UP)) { 
+            // Thử gán logic đi XUỐNG cho nút vật lý BTN_UP (ID 0)
+            menuManager.handleInput(BTN_UP); 
         } 
         
-        // --- Xử lý NÚT CHỌN (BTN_SELECT) ---
+        if (checkPhysicalButtonOneShot(BTN_DOWN)) { 
+            // Thử gán logic đi LÊN cho nút vật lý BTN_DOWN (ID 1)
+            menuManager.handleInput(BTN_DOWN); 
+        }
+        
+        // --- Xử lý NÚT CHỌN (BTN_SELECT) hoặc Touch ---
         if (checkPhysicalButtonOneShot(BTN_SELECT) || touchButton.checkButton()) { 
+            // Lấy ID mục được chọn để chuyển trạng thái
             int selectedID = menuManager.getSelectedItem();
             const char* selectedLabel = menuManager.getItemLabel(selectedID); 
             
             Serial.printf("ACTION: Selected Item (ID %d): %s\n", selectedID, selectedLabel);
             
-            // 🌟 LOGIC CHUYỂN TRẠNG THÁI MỚI 🌟
+            // 🌟 LOGIC CHUYỂN TRẠNG THÁI 🌟
             if (selectedID == MENU_WIFI) {
                 currentState = STATE_WIFI;
-                wifiManager.drawScreen(); // Gọi hàm vẽ màn hình từ WifiManager
+                wifiManager.drawScreen(); // Vẽ giao diện Wi-Fi
                 Serial.println("State Changed: MENU -> WIFI");
             } 
             else if (selectedID == MENU_MISC) { 
@@ -126,11 +131,11 @@ void loop() {
                 tft.setTextSize(2); 
                 tft.setTextColor(TFT_YELLOW, TFT_BLACK);
                 tft.setCursor(10, 5); 
-                tft.println("SYSTEM MONITOR (MISC)"); 
-                monitor.displayMemoryStatus();
-                Serial.println("State Changed: MENU -> MONITOR (via MISC)");
+                tft.println("MISCELLANEOUS (TBD)"); 
+                // monitor.displayMemoryStatus(); // Uncomment nếu SystemMonitor được sử dụng
+                Serial.println("State Changed: MENU -> MONITOR (MISC)");
             }
-            // Thêm logic cho các mục khác...
+            // Thêm logic cho các mục MenuID khác nếu cần...
             
             else {
                 // Xử lý chung cho các mục Menu chưa được triển khai
@@ -140,16 +145,23 @@ void loop() {
                 tft.setTextColor(TFT_GREEN, TFT_BLACK);
                 tft.printf("SELECTED: %s", selectedLabel); 
                 delay(1000); 
-                menuManager.drawMenu(); 
+                menuManager.drawMenu(); // Quay lại Menu
             }
         } 
     } 
     else if (currentState == STATE_WIFI) {
-        // Logic màn hình WIFI: chạy cập nhật nền (ví dụ: quét mạng, hiển thị IP)
+        // Logic màn hình WIFI
         wifiManager.updateScreen();
+        
+        // 🌟 LOGIC QUÉT LẠI (BTN_SELECT) 🌟
+        if (checkPhysicalButtonOneShot(BTN_SELECT)) { 
+            Serial.println("WIFI: Re-scanning networks triggered by BTN_SELECT...");
+            wifiManager.scanNetworks();
+        }
     }
     else if (currentState == STATE_MONITOR) {
         // Logic màn hình MONITOR
+        // (Hiện tại chỉ cần chờ BTN_MENU để thoát)
     }
     
     // 4. CHẠY CÁC CHỨC NĂNG NỀN VÀ HIỆU ỨNG

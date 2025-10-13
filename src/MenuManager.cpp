@@ -98,11 +98,11 @@ void MenuManager::handleInput(int pressedIndex) {
 
     // Logic điều hướng 2 nút TUẦN TỰ
     switch (pressedIndex) {
-        case BTN_DOWN: // Di chuyển TIẾN
+        case BTN_DOWN: // Di chuyển TIẾN (Xuống)
             newSelection = (selectedItem + 1) % MENU_COUNT;
             break;
             
-        case BTN_UP: // Di chuyển LÙI
+        case BTN_UP: // Di chuyển LÙI (Lên)
             newSelection = (selectedItem - 1 + MENU_COUNT) % MENU_COUNT;
             break;
             
