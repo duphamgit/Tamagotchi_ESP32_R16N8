@@ -28,8 +28,8 @@ void WifiManager::drawAPItem(int apIndex, int screenY, bool isSelected) {
     int h = ITEM_H;
 
     // Màu sắc
-    uint16_t bgColor = isSelected ? TFT_DARKCYAN : TFT_BLACK;
-    uint16_t textColor = isSelected ? TFT_WHITE : TFT_CYAN;
+    uint16_t bgColor = isSelected ? TFT_DARKGREEN : TFT_BLACK;
+    uint16_t textColor = isSelected ? TFT_DARKGREEN : TFT_DARKGREEN;
     
     // Xóa vùng vẽ cũ
     tft.fillRect(0, screenY, w, h, bgColor); 
@@ -37,7 +37,7 @@ void WifiManager::drawAPItem(int apIndex, int screenY, bool isSelected) {
     // 1. Số thứ tự (01.)
     tft.setCursor(5, screenY + 3);
     tft.setTextSize(1);
-    tft.setTextColor(textColor);
+    tft.setTextColor(TFT_GREEN);
     // Sử dụng apIndex + 1 để hiển thị số thứ tự từ 1
     tft.printf("%02d.", apIndex + 1);
 
@@ -52,7 +52,7 @@ void WifiManager::drawAPItem(int apIndex, int screenY, bool isSelected) {
 
     // 3. Cường độ sóng (RSSI)
     tft.setTextSize(1);
-    tft.setTextColor(TFT_LIGHTGREY);
+    tft.setTextColor(TFT_GREEN);
     tft.setCursor(w - 45, screenY + 3);
     tft.printf("%d dBm", aps[apIndex].rssi);
 
@@ -95,7 +95,7 @@ void WifiManager::drawFooter() {
     tft.fillRect(0, END_Y, DISPLAY_W, FOOTER_H, TFT_DARKGREY);
     tft.setCursor(5, END_Y + 3);
     tft.setTextSize(1);
-    tft.setTextColor(TFT_WHITE, TFT_DARKGREY);
+    tft.setTextColor(TFT_WHITE, TFT_WHITE);
     
     // Hiển thị thông tin tổng quan
     int maxScroll = apCount > MAX_AP_DISPLAY ? apCount - MAX_AP_DISPLAY : 0;
