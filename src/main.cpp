@@ -74,10 +74,10 @@ void setup() {
     tft.setRotation(0); 
     
     // 2. Khởi tạo các Manager
-    wifiManager.begin(); // Khởi tạo Wi-Fi và scan lần đầu
+    //wifiManager.begin(); // Khởi tạo Wi-Fi và scan lần đầu
     menuManager.drawMenu(); // Vẽ Menu chính ban đầu
-    
     ledControl.begin(); 
+    //wifiManager.begin();
 }
 
 // --- LOOP (Người Điều Phối) ---
@@ -155,8 +155,9 @@ void loop() {
         
         // 🌟 LOGIC QUÉT LẠI (BTN_SELECT) 🌟
         if (checkPhysicalButtonOneShot(BTN_SELECT)) { 
-            Serial.println("WIFI: Re-scanning networks triggered by BTN_SELECT...");
-            wifiManager.scanNetworks();
+            wifiManager.begin();
+            //Serial.println("WIFI: Re-scanning networks triggered by BTN_SELECT...");
+            //wifiManager.scanNetworks();
         }
     }
     else if (currentState == STATE_MONITOR) {
