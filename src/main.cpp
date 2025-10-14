@@ -93,6 +93,7 @@ void loop() {
             Serial.println("State Changed: -> MENU");
             //Tắt đèn Led
             ledControl.setColor(0, 0, 0); // Tắt LED khi về menu
+            //ledControl.runRedFade();
         }
     }
 
