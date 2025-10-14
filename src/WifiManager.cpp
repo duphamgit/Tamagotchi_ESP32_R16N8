@@ -92,10 +92,10 @@ void WifiManager::drawHeader() {
 
 // --- HÀM VẼ KHUNG CHÂN TRANG ---
 void WifiManager::drawFooter() {
-    tft.fillRect(0, END_Y, DISPLAY_W, FOOTER_H, TFT_DARKGREY);
-    tft.setCursor(5, END_Y + 3);
+    tft.fillRect(0, END_Y, DISPLAY_W, FOOTER_H, TFT_BLACK);
+    tft.setCursor(17, END_Y + 3);
     tft.setTextSize(1);
-    tft.setTextColor(TFT_WHITE, TFT_WHITE);
+    tft.setTextColor(TFT_GREEN, TFT_GREEN);
     
     // Hiển thị thông tin tổng quan
     int maxScroll = apCount > MAX_AP_DISPLAY ? apCount - MAX_AP_DISPLAY : 0;

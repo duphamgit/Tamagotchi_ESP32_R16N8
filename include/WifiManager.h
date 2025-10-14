@@ -7,7 +7,7 @@
 
 // --- CẤU HÌNH HIỂN THỊ WIFI SCANNER ---
 #define DISPLAY_W 240 // Chiều rộng màn hình (chế độ dọc)
-#define DISPLAY_H 320 // Chiều cao màn hình (chế độ dọc)
+#define DISPLAY_H 280 // Chiều cao màn hình (chế độ dọc)
 #define HEADER_H 25   // Chiều cao tiêu đề
 #define FOOTER_H 20   // Chiều cao chân trang
 #define START_Y (HEADER_H + 5) // Tọa độ Y bắt đầu của danh sách
