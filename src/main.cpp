@@ -74,7 +74,6 @@ void setup() {
     ledControl.begin();
     // monitor.begin(); // Giả sử monitor chưa được dùng
     wifiManager.begin(); // Khởi tạo Wi-Fi
-
     // Khởi tạo trạng thái ban đầu
     currentState = STATE_MENU;
     menuManager.drawMenu();
@@ -92,6 +91,8 @@ void loop() {
             currentState = STATE_MENU;
             menuManager.drawMenu(); // Vẽ lại Menu
             Serial.println("State Changed: -> MENU");
+            //Tắt đèn Led
+            ledControl.setColor(0, 0, 0); // Tắt LED khi về menu
         }
     }
 
@@ -133,7 +134,7 @@ void loop() {
     
     else if (currentState == STATE_WIFI_SCAN) {
         // Xử lý input khi đang ở màn hình Wi-Fi
-        
+        ledControl.runGreenFade();
         // --- Điều hướng UP/DOWN để cuộn ---
         if (checkPhysicalButtonOneShot(BTN_UP)) {
             wifiManager.handleInput(BTN_UP);
