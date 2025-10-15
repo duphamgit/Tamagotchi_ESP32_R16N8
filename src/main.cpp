@@ -21,6 +21,8 @@ enum DisplayState {
     STATE_MENU,       
     STATE_MONITOR,    // Màn hình System Monitor
     STATE_WIFI_SCAN,  // Màn hình quét Wi-Fi (TRẠNG THÁI MỚI)
+    STATE_INPUT_WIFI_PASSWORD, // Màn hình nhập mật khẩu Wi-Fi
+    STATE_WIFI_CONNECTING // Màn hình kết nối Wi-Fi
 };
 
 // --- KHAI BÁO CÁC ĐỐI TƯỢNG TOÀN CỤC (GLOBAL OBJECTS) ---
@@ -98,63 +100,95 @@ void loop() {
 
     // 3. XỬ LÝ LOGIC DỰA TRÊN TRẠNG THÁI HIỆN TẠI
     
-    if (currentState == STATE_MENU) {
-        // --- Xử lý điều hướng UP/DOWN ---
-        if (checkPhysicalButtonOneShot(BTN_UP)) { 
-            menuManager.handleInput(BTN_UP);
-        } else if (checkPhysicalButtonOneShot(BTN_DOWN)) { 
-            menuManager.handleInput(BTN_DOWN);
-        } 
+    switch (currentState) {
         
-        // --- Xử lý NÚT CHỌN (SELECT) ---
-        if (checkPhysicalButtonOneShot(BTN_SELECT)) { 
-            int selectedID = menuManager.getSelectedItem();
-            const char* selectedLabel = menuManager.getItemLabel(selectedID); 
+        case STATE_MENU:
+            // ... (Giữ nguyên logic xử lý STATE_MENU) ...
+            if (checkPhysicalButtonOneShot(BTN_UP)) { 
+                menuManager.handleInput(BTN_UP);
+            } else if (checkPhysicalButtonOneShot(BTN_DOWN)) { 
+                menuManager.handleInput(BTN_DOWN);
+            } 
             
-            Serial.printf("ACTION: Selected Item (ID %d): %s\n", selectedID, selectedLabel);
-            
-            // Xử lý chuyển trạng thái dựa trên lựa chọn
-            if (selectedID == MENU_WIFI) {
-                // CHUYỂN SANG MÀN HÌNH WIFI SCAN
-                currentState = STATE_WIFI_SCAN;
-                wifiManager.drawScreen();      // Vẽ khung màn hình (KHÔNG CÓ SCAN)
-                wifiManager.scanNetworks();    // BẮT ĐẦU QUÉT (Blocking call, chỉ gọi 1 lần)
-                Serial.println("State Changed: MENU -> WIFI SCAN. Starting scan...");
-            } else {
-                 // --- HIỂN THỊ HÀNH ĐỘNG CHỌN (Ví dụ cho các mục khác) ---
-                menuManager.animateSelection(selectedID); // Tạo hiệu ứng chuyển cảnh
-                tft.fillRect(MSG_X, MSG_Y, MSG_WIDTH, MSG_HEIGHT, TFT_BLACK); 
-                tft.setCursor(MSG_X, MSG_Y); 
-                tft.setTextSize(2);
-                tft.setTextColor(TFT_GREEN, TFT_BLACK);
-                tft.printf("Selected: %s", selectedLabel);
+            if (checkPhysicalButtonOneShot(BTN_SELECT)) { 
+                int selectedID = menuManager.getSelectedItem();
+                const char* selectedLabel = menuManager.getItemLabel(selectedID); 
+                
+                Serial.printf("ACTION: Selected Item (ID %d): %s\n", selectedID, selectedLabel);
+                
+                if (selectedID == MENU_WIFI) {
+                    currentState = STATE_WIFI_SCAN;
+                    wifiManager.drawScreen();
+                    wifiManager.scanNetworks();
+                    Serial.println("State Changed: MENU -> WIFI SCAN. Starting scan...");
+                } else {
+                    menuManager.animateSelection(selectedID);
+                    tft.fillRect(MSG_X, MSG_Y, MSG_WIDTH, MSG_HEIGHT, TFT_BLACK); 
+                    tft.setCursor(MSG_X, MSG_Y); 
+                    tft.setTextSize(2);
+                    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                    tft.printf("Selected: %s", selectedLabel);
+                }
             }
-        }
-    } 
-    
-    else if (currentState == STATE_WIFI_SCAN) {
-        // Xử lý input khi đang ở màn hình Wi-Fi
-        ledControl.runGreenFade();
-        // --- Điều hướng UP/DOWN để cuộn ---
-        if (checkPhysicalButtonOneShot(BTN_UP)) {
-            wifiManager.handleInput(BTN_UP);
-        } else if (checkPhysicalButtonOneShot(BTN_DOWN)) {
-            wifiManager.handleInput(BTN_DOWN);
-        }
-        
-        // --- NÚT CHỌN (SELECT) để quét lại ---
-        if (checkPhysicalButtonOneShot(BTN_SELECT)) {
-            // Dùng SELECT để quét lại mạng
-            wifiManager.scanNetworks(); // Gọi quét lại (sẽ chặn loop trong lúc quét)
-            Serial.println("ACTION: Re-scanning Wi-Fi networks.");
-        }
-    }
-    
-    else if (currentState == STATE_MONITOR) {
-        // Logic cho System Monitor (nếu có)
-        // monitor.update();
-    }
+            break;
 
-    // Delay ngắn để giảm tải CPU
+// -----------------------------------------------------------------------------
+
+        case STATE_WIFI_SCAN:
+            // ... (Giữ nguyên logic xử lý STATE_WIFI_SCAN) ...
+            ledControl.runGreenFade();
+            
+            if (checkPhysicalButtonOneShot(BTN_UP)) {
+                wifiManager.handleInput(BTN_UP);
+            } else if (checkPhysicalButtonOneShot(BTN_DOWN)) {
+                wifiManager.handleInput(BTN_DOWN);
+            }
+            
+            if (checkPhysicalButtonOneShot(BTN_SELECT)) {
+                currentState = STATE_INPUT_WIFI_PASSWORD;
+                
+                // Khởi tạo màn hình nhập mật khẩu Wi-Fi
+                tft.fillScreen(TFT_BLACK);
+                tft.setCursor(10, 100);
+                tft.setTextSize(2); 
+                tft.printf("Input Wi-Fi passwords page."); 
+            }
+            break;
+
+// -----------------------------------------------------------------------------
+
+        case STATE_INPUT_WIFI_PASSWORD:
+            // --- LOGIC MỚI ĐÃ THÊM ---
+            // Giả sử logic nhập liệu (UP/DOWN để chọn ký tự) nằm ở đây.
+            // ... (Logic xử lý input nhập mật khẩu) ...
+            
+            // Xử lý nút SELECT để xác nhận mật khẩu và CHUYỂN TRẠNG THÁI
+            if (checkPhysicalButtonOneShot(BTN_SELECT)) {
+                currentState = STATE_WIFI_CONNECTING;
+                
+                // Khởi tạo màn hình đang kết nối Wi-Fi
+                tft.fillScreen(TFT_BLACK);
+                tft.setCursor(10, 100);
+                tft.setTextSize(2); 
+                tft.setTextColor(TFT_YELLOW);
+                tft.printf("Connecting to Wi-Fi...");
+                Serial.println("State Changed: INPUT WIFI PASSWORD -> WIFI CONNECTING.");
+            }
+            // --- KẾT THÚC LOGIC MỚI ---
+            break; 
+
+// -----------------------------------------------------------------------------
+
+        case STATE_WIFI_CONNECTING:
+            // Xử lý logic khi đang cố gắng kết nối Wi-Fi
+            // Ví dụ: Gọi hàm kết nối Wi-Fi, hiển thị vòng quay đợi (spinner),
+            // và kiểm tra xem đã kết nối thành công hay thất bại để chuyển trạng thái tiếp theo.
+            // ... (Logic xử lý kết nối) ...
+            break;
+            
+        default:
+            break; 
+    }
+    
     delay(10); 
 }
