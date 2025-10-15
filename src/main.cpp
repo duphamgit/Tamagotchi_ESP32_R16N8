@@ -103,7 +103,6 @@ void loop() {
     switch (currentState) {
         
         case STATE_MENU:
-            // ... (Giữ nguyên logic xử lý STATE_MENU) ...
             if (checkPhysicalButtonOneShot(BTN_UP)) { 
                 menuManager.handleInput(BTN_UP);
             } else if (checkPhysicalButtonOneShot(BTN_DOWN)) { 
@@ -135,7 +134,6 @@ void loop() {
 // -----------------------------------------------------------------------------
 
         case STATE_WIFI_SCAN:
-            // ... (Giữ nguyên logic xử lý STATE_WIFI_SCAN) ...
             ledControl.runGreenFade();
             
             if (checkPhysicalButtonOneShot(BTN_UP)) {
