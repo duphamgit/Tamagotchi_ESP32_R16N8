@@ -35,7 +35,7 @@ private:
     void drawFooter();
     void drawAPList();
     void drawAPItem(int apIndex, int screenY, bool isSelected);
-
+    
 public:
     WifiManager(TFT_eSPI& displayRef);
     void begin();
@@ -55,6 +55,8 @@ public:
      * @param pressedIndex Index của nút đã được nhấn (từ ButtonManager).
      */
     void handleInput(ButtonIndex pressedIndex);
+    void drawInputPasswordScreen();
+    void drawConnectingScreen();
 };
 
 #endif // WIFI_MANAGER_H

@@ -233,3 +233,17 @@ void WifiManager::handleInput(ButtonIndex pressedIndex) {
         }
     }
 }
+void WifiManager::drawInputPasswordScreen() {
+    tft.fillScreen(TFT_BLACK);
+    tft.setCursor(10, 100);
+    tft.setTextSize(2); 
+    tft.printf("Input Wi-Fi passwords page."); 
+}
+
+void WifiManager::drawConnectingScreen() {
+    tft.fillScreen(TFT_BLACK);
+    tft.setCursor(10, 100);
+    tft.setTextSize(2); 
+    tft.setTextColor(TFT_YELLOW);
+    tft.printf("Connecting to Wi-Fi...");
+}

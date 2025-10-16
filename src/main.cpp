@@ -144,49 +144,31 @@ void loop() {
             
             if (checkPhysicalButtonOneShot(BTN_SELECT)) {
                 currentState = STATE_INPUT_WIFI_PASSWORD;
-                
-                // Khởi tạo màn hình nhập mật khẩu Wi-Fi
-                tft.fillScreen(TFT_BLACK);
-                tft.setCursor(10, 100);
-                tft.setTextSize(2); 
-                tft.printf("Input Wi-Fi passwords page."); 
             }
             break;
 
 // -----------------------------------------------------------------------------
 
         case STATE_INPUT_WIFI_PASSWORD:
-            // --- LOGIC MỚI ĐÃ THÊM ---
-            // Giả sử logic nhập liệu (UP/DOWN để chọn ký tự) nằm ở đây.
-            // ... (Logic xử lý input nhập mật khẩu) ...
-            
+            wifiManager.drawInputPasswordScreen();
             // Xử lý nút SELECT để xác nhận mật khẩu và CHUYỂN TRẠNG THÁI
             if (checkPhysicalButtonOneShot(BTN_SELECT)) {
                 currentState = STATE_WIFI_CONNECTING;
-                
-                // Khởi tạo màn hình đang kết nối Wi-Fi
-                tft.fillScreen(TFT_BLACK);
-                tft.setCursor(10, 100);
-                tft.setTextSize(2); 
-                tft.setTextColor(TFT_YELLOW);
-                tft.printf("Connecting to Wi-Fi...");
                 Serial.println("State Changed: INPUT WIFI PASSWORD -> WIFI CONNECTING.");
             }
-            // --- KẾT THÚC LOGIC MỚI ---
             break; 
 
 // -----------------------------------------------------------------------------
 
         case STATE_WIFI_CONNECTING:
-            // Xử lý logic khi đang cố gắng kết nối Wi-Fi
-            // Ví dụ: Gọi hàm kết nối Wi-Fi, hiển thị vòng quay đợi (spinner),
-            // và kiểm tra xem đã kết nối thành công hay thất bại để chuyển trạng thái tiếp theo.
-            // ... (Logic xử lý kết nối) ...
-            break;
+            wifiManager.drawConnectingScreen();
             
+            break;
+
+// -----------------------------------------------------------------------------
+        
         default:
             break; 
     }
-    
     delay(10); 
 }
