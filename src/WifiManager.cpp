@@ -281,21 +281,21 @@ void WifiManager::drawInputPasswordScreen()
     tft.fillScreen(TFT_BLACK);
 
     // Hiển thị Tiêu đề
-    tft.setCursor(0, 20);
+    tft.setCursor(0, 0);
     tft.setTextSize(2);
-    tft.setTextColor(TFT_GREEN);
+    tft.setTextColor(TFT_CYAN);
     tft.printf("Connecting to:");
 
     // Hiển thị SSID đã chọn
-    tft.setCursor(0, 45);
+    tft.setCursor(5, 25);
     tft.setTextSize(2);
-    tft.setTextColor(TFT_WHITE);
+    tft.setTextColor(TFT_YELLOW);
     tft.print(ssidToDisplay);
 
     // Hiển thị thông báo nhập liệu
-    tft.setCursor(0, 70);
+    tft.setCursor(10, 100);
     tft.setTextSize(2);
-    tft.setTextColor(TFT_GREEN);
+    tft.setTextColor(TFT_WHITE);
     tft.printf("Enter Password:");
 }
 
