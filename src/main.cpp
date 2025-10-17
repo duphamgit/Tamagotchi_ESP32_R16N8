@@ -36,7 +36,7 @@ WifiManager wifiManager(tft); // Khởi tạo WifiManager
 
 // --- BIẾN TRẠNG THÁI TOÀN CỤC ---
 DisplayState currentState = STATE_MENU;
-
+bool needsRedraw = true; // Cờ để theo dõi khi nào cần vẽ lại
 // --- CÁC HÀM HỖ TRỢ ---
 /**
  * @brief Kiểm tra nút bấm vật lý (one-shot, chỉ trả về true 1 lần khi nhấn).
@@ -74,7 +74,6 @@ void setup() {
     // Khởi tạo các quản lý
     physicalButtons.begin();
     ledControl.begin();
-    // monitor.begin(); // Giả sử monitor chưa được dùng
     wifiManager.begin(); // Khởi tạo Wi-Fi
     // Khởi tạo trạng thái ban đầu
     currentState = STATE_MENU;
@@ -103,6 +102,7 @@ void loop() {
     switch (currentState) {
         
         case STATE_MENU:
+            needsRedraw = true;
             if (checkPhysicalButtonOneShot(BTN_UP)) { 
                 menuManager.handleInput(BTN_UP);
             } else if (checkPhysicalButtonOneShot(BTN_DOWN)) { 
@@ -150,10 +150,14 @@ void loop() {
 // -----------------------------------------------------------------------------
 
         case STATE_INPUT_WIFI_PASSWORD:
-            wifiManager.drawInputPasswordScreen();
+            if (needsRedraw) {
+                wifiManager.drawInputPasswordScreen();
+                needsRedraw = false; // Đặt lại cờ sau khi vẽ
+            }
             // Xử lý nút SELECT để xác nhận mật khẩu và CHUYỂN TRẠNG THÁI
             if (checkPhysicalButtonOneShot(BTN_SELECT)) {
                 currentState = STATE_WIFI_CONNECTING;
+                needsRedraw = true;
                 Serial.println("State Changed: INPUT WIFI PASSWORD -> WIFI CONNECTING.");
             }
             break; 
@@ -161,8 +165,10 @@ void loop() {
 // -----------------------------------------------------------------------------
 
         case STATE_WIFI_CONNECTING:
-            wifiManager.drawConnectingScreen();
-            
+            if (needsRedraw) {
+                wifiManager.drawConnectingScreen();
+                needsRedraw = false; // Đặt lại cờ sau khi vẽ
+            }
             break;
 
 // -----------------------------------------------------------------------------
