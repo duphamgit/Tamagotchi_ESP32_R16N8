@@ -100,9 +100,7 @@ void loop() {
     // 3. XỬ LÝ LOGIC DỰA TRÊN TRẠNG THÁI HIỆN TẠI
     
     switch (currentState) {
-        
         case STATE_MENU:
-            needsRedraw = true;
             if (checkPhysicalButtonOneShot(BTN_UP)) { 
                 menuManager.handleInput(BTN_UP);
             } else if (checkPhysicalButtonOneShot(BTN_DOWN)) { 
@@ -116,6 +114,7 @@ void loop() {
                 Serial.printf("ACTION: Selected Item (ID %d): %s\n", selectedID, selectedLabel);
                 
                 if (selectedID == MENU_WIFI) {
+                    needsRedraw = true;
                     currentState = STATE_WIFI_SCAN;
                     wifiManager.drawScreen();
                     wifiManager.scanNetworks();
